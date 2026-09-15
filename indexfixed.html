@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRCC Smart Queue Management Portal</title>
+  <style>
+    :root {
+      --bg-dark: #0b132b;
+      --card-bg: #1c2541;
+      --accent-blue: #3a86ef;
+      --accent-green: #06d6a0;
+      --accent-gold: #ffd166;
+      --accent-pink: #ef476f;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: all 0.25s ease-in-out; }
+    html { scroll-behavior: smooth; }
+    body { background-color: var(--bg-dark); color: var(--text-main); margin: 0; padding: 0; }
+
+    /* Floating Navigation Bar */
+    .navbar { position: sticky; top: 0; z-index: 1000; width: 100%; background: rgba(28, 37, 65, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 18px; font-weight: 800; color: var(--accent-blue); display: flex; align-items: center; gap: 8px; }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a { color: var(--text-sub); text-decoration: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .nav-links a:hover, .nav-links a.active { color: var(--accent-blue); }
+    .btn-admin-nav { background: var(--accent-blue); color: white !important; padding: 8px 16px; border-radius: 8px; }
+
+    .container { width: 100%; max-width: 800px; margin: 0 auto; padding: 30px 20px; }
+
+    /* Sections Layout */
+    .page-section { display: none; }
+    .page-section.active { display: block; animation: fadeIn 0.4s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Hero Banner / Home Section */
+    .hero { text-align: center; padding: 40px 20px; background: linear-gradient(180deg, #1c2541 0%, #0b132b 100%); border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 30px; }
+    .hero h1 { font-size: 32px; color: var(--text-main); margin-bottom: 12px; }
+    .hero p { font-size: 15px; color: var(--text-sub); max-width: 600px; margin: 0 auto 25px auto; line-height: 1.6; }
+    .hero-btn { background: var(--accent-green); color: #0b132b; border: none; padding: 14px 28px; font-size: 16px; font-weight: 800; border-radius: 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .hero-btn:hover { background: #05b383; color: white; }
+
+    /* Services Grid */
+    .services-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
+    .service-card { background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); text-align: left; }
+    .service-card h3 { color: var(--accent-blue); margin-top: 0; font-size: 18px; }
+    .service-card p { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+    .service-badge { display: inline-block; background: rgba(58,134,239,0.15); color: var(--accent-blue); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; margin-top: 10px; }
+
+    /* Shared Card Design */
+    .card { background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); text-align: center; }
+    h2 { color: var(--text-main); margin-top: 0; margin-bottom: 6px; font-size: 24px; }
+    p.subtitle { color: var(--text-sub); font-size: 13px; margin-bottom: 25px; }
+
+    /* Form Design */
+    .form-group { text-align: left; margin-bottom: 16px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 6px; }
+    .form-control { width: 100%; padding: 12px 14px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; font-size: 14px; background: #0b132b; color: white; }
+    .form-control:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(58, 134, 239, 0.2); }
+
+    .btn-action { background: var(--accent-blue); color: white; border: none; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; margin-top: 10px; }
+    .btn-action:hover { background: #2563eb; }
+
+    /* Status Display */
+    .status-box { margin-top: 25px; background: #0b132b; padding: 20px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.05); text-align: left; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 15px; color: var(--text-sub); }
+    .val { font-weight: bold; color: var(--text-main); }
+    .highlight-token { color: var(--accent-pink); font-size: 22px; font-weight: 800; }
+    .highlight-time { color: var(--accent-blue); font-size: 20px; font-weight: 800; }
+
+    /* Progress Bar */
+    .progress-container { margin-top: 15px; background: #1c2541; height: 8px; border-radius: 10px; overflow: hidden; }
+    .progress-bar { background: linear-gradient(90deg, var(--accent-blue), var(--accent-green)); height: 100%; width: 0%; transition: width 0.5s ease-in-out; }
+
+    /* Auth Pass */
+    .auth-card { margin-top: 25px; padding: 20px; background: #0b132b; border: 2px solid var(--accent-green); border-radius: 14px; display: none; flex-direction: column; text-align: left; }
+    .badge-auth { background: var(--accent-green); color: #0b132b; padding: 5px 14px; border-radius: 20px; font-weight: 800; font-size: 11px; align-self: center; margin-bottom: 14px; }
+    .auth-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+    .auth-row .label { color: var(--text-sub); }
+    .auth-row .value { font-weight: bold; color: var(--text-main); }
+    #qrcode { text-align: center; margin-top: 12px; }
+    #qrcode img { margin: auto; border-radius: 10px; padding: 6px; background: white; }
+
+    /* Admin Dashboard */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 25px; }
+    .stat-card { background: #0b132b; padding: 18px 12px; border-radius: 14px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .stat-card .title { font-size: 11px; color: var(--text-sub); text-transform: uppercase; font-weight: 700; }
+    .stat-card .num { font-size: 26px; font-weight: 800; margin-top: 6px; }
+    .stat-card .num.gold { color: var(--accent-gold); }
+    .stat-card .num.green { color: var(--accent-green); }
+    .stat-card .num.blue { color: var(--accent-blue); }
+
+    .customer-card { background: #0b132b; border-left: 5px solid var(--accent-green); padding: 18px; border-radius: 12px; margin-bottom: 25px; text-align: left; }
+    .customer-card h3 { margin: 0 0 12px 0; font-size: 13px; color: var(--accent-green); text-transform: uppercase; }
+
+    .btn-next { background: var(--accent-green); color: #0b132b; border: none; width: 100%; padding: 18px; font-size: 18px; font-weight: 800; border-radius: 12px; cursor: pointer; }
+    .btn-next:hover { background: #05b383; color: white; }
+
+    .voice-toggle { margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
+    .btn-reset { background: transparent; color: var(--accent-pink); border: 1px solid var(--accent-pink); width: 100%; padding: 10px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; margin-top: 15px; }
+
+    footer { text-align: center; padding: 20px; font-size: 12px; color: var(--text-sub); border-top: 1px solid rgba(255,255,255,0.05); margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <div class="brand">⚡ DRCC Smart Queue</div>
+    <div class="nav-links">
+      <a onclick="navigateTo('home')" id="link-home" class="active">Home</a>
+      <a onclick="navigateTo('about')" id="link-about">About Us</a>
+      <a onclick="navigateTo('services')" id="link-services">Services</a>
+      <a onclick="navigateTo('token')" id="link-token">Book Token</a>
+      <a onclick="navigateTo('admin')" id="link-admin" class="btn-admin-nav">Staff Dashboard 🔒</a>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- 1. HOME SECTION -->
+    <section id="sec-home" class="page-section active">
+      <div class="hero">
+        <h1>Smart Digital Queue & Token Allocation</h1>
+        <p>Avoid long crowds at the office. Book your digital token online from home, receive verified QR verification, and track real-time queue waiting times mathematically.</p>
+        <button class="hero-btn" onclick="navigateTo('token')">Book Token Now →</button>
+      </div>
+
+      <div class="card">
+        <h2>How It Works</h2>
+        <p class="subtitle">3 Simple Steps to Save Your Time</p>
+
+        <div class="services-grid">
+          <div class="service-card">
+            <h3>1. Book Online</h3>
+            <p>Select your required DRCC service and fill in basic details from your mobile or PC.</p>
+          </div>
+          <div class="service-card">
+            <h3>2. Get Digital QR Pass</h3>
+            <p>Receive an authorized digital token pass with an instant verification QR Code.</p>
+          </div>
+          <div class="service-card">
+            <h3>3. Arrive On Time</h3>
+            <p>Track dynamic wait times live. Arrive at the office counter right when your turn comes!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. ABOUT US SECTION -->
+    <section id="sec-about" class="page-section">
+      <div class="card" style="text-align: left;">
+        <h2 style="text-align: center;">About Smart Queue System</h2>
+        <p class="subtitle" style="text-align: center;">Revolutionizing Public Office Queue Management</p>
+        
+        <p style="color: var(--text-sub); line-height: 1.7; font-size: 14px;">
+          The DRCC Smart Queue Portal is an AI and IoT-integrated public queue management system designed to eliminate long waiting lines at District Registration and Counseling Centers (DRCC) and Bank branches.
+        </p>
+        <p style="color: var(--text-sub); line-height: 1.7; font-size: 14px;">
+          Integrated with real-time Firebase Cloud Databases and ESP32-CAM hardware counters, the portal dynamically calculates service times based on specific work requests—ensuring smooth queue flow, digital security verification, and zero crowding.
+        </p>
+      </div>
+    </section>
+
+    <!-- 3. SERVICES SECTION -->
+    <section id="sec-services" class="page-section">
+      <div class="card">
+        <h2>Supported DRCC Services</h2>
+        <p class="subtitle">Standardized Allocated Processing Duration</p>
+
+        <div class="services-grid">
+          <div class="service-card">
+            <h3>Loan Certificate Work</h3>
+            <p>Complete processing for student loan certificates and verification approvals.</p>
+            <span class="service-badge">Allocated Duration: 15 Mins</span>
+          </div>
+
+          <div class="service-card">
+            <h3>Document Verification</h3>
+            <p>Verification of educational certificates, identity cards, and submitted forms.</p>
+            <span class="service-badge">Allocated Duration: 10 Mins</span>
+          </div>
+
+          <div class="service-card">
+            <h3>General Inquiry</h3>
+            <p>Inquiries regarding scheme guidelines, application statuses, or general helpdesk.</p>
+            <span class="service-badge">Allocated Duration: 5 Mins</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. BOOK TOKEN SECTION (USER PANEL) -->
+    <section id="sec-token" class="page-section">
+      <div class="card">
+        <h2>Book Token Online</h2>
+        <p class="subtitle">Real-time Service Booking & Live Queue Tracking</p>
+
+        <div id="userForm">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="userName" class="form-control" placeholder="Enter your full name">
+          </div>
+
+          <div class="form-group" style="display: flex; gap: 12px;">
+            <div style="flex: 1;">
+              <label>Age *</label>
+              <input type="number" id="userAge" class="form-control" placeholder="Age" min="1" max="100">
+            </div>
+            <div style="flex: 1;">
+              <label>Gender *</label>
+              <select id="userGender" class="form-control">
+                <option value="">Select</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Select Required Work / Service *</label>
+            <select id="userService" class="form-control">
+              <option value="">Choose Service Category</option>
+              <option value="loan_cert">Loan Certificate Work (15 Mins)</option>
+              <option value="doc_verify">Document Verification (10 Mins)</option>
+              <option value="general_inquiry">General Inquiry (5 Mins)</option>
+            </select>
+          </div>
+
+          <button class="btn-action" id="bookBtn" onclick="bookToken()">Generate Token Now</button>
+        </div>
+
+        <!-- Realtime Queue Monitor -->
+        <div class="status-box">
+          <div class="status-row">
+            <span>Your Token:</span>
+            <span id="myToken" class="highlight-token">--</span>
+          </div>
+          <div class="status-row">
+            <span>Currently Serving:</span>
+            <span id="currentServing" class="val">--</span>
+          </div>
+          <div class="status-row">
+            <span>People Ahead:</span>
+            <span id="peopleAhead" class="val">--</span>
+          </div>
+          <div class="status-row">
+            <span>Calculated Est. Time:</span>
+            <span id="timeLeft" class="highlight-time">-- mins</span>
+          </div>
+
+          <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+        </div>
+
+        <!-- Authorized Verification Card -->
+        <div class="auth-card" id="authCard">
+          <div class="badge-auth">✔ AUTHORIZED DIGITAL TOKEN</div>
+          
+          <div class="auth-row">
+            <span class="label">Name:</span>
+            <span class="value" id="vName">--</span>
+          </div>
+          <div class="auth-row">
+            <span class="label">Age / Gender:</span>
+            <span class="value" id="vAgeGender">--</span>
+          </div>
+          <div class="auth-row">
+            <span class="label">Selected Work:</span>
+            <span class="value" id="vService">--</span>
+          </div>
+          <div class="auth-row">
+            <span class="label">Booking Time:</span>
+            <span class="value" id="vTime">--</span>
+          </div>
+
+          <hr style="border: 0.5px solid rgba(255, 255, 255, 0.1); margin: 12px 0;">
+          <div id="qrcode"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. ADMIN DASHBOARD SECTION -->
+    <section id="sec-admin" class="page-section">
+      <div class="card">
+        <h2>Staff Control Dashboard</h2>
+        <p class="subtitle">Live Counter Operations & Customer Verification</p>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="title">Currently Serving</div>
+            <div class="num gold" id="servingNum">#--</div>
+          </div>
+          <div class="stat-card">
+            <div class="title">Total Attended</div>
+            <div class="num green" id="attendedNum">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="title">Waiting in Line</div>
+            <div class="num blue" id="waitingNum">0</div>
+          </div>
+        </div>
+
+        <div class="customer-card">
+          <h3>Current Customer Details</h3>
+          <div class="status-row">
+            <span style="color: var(--text-sub);">Full Name:</span>
+            <span class="val" id="cName">Fetching...</span>
+          </div>
+          <div class="status-row">
+            <span style="color: var(--text-sub);">Age & Gender:</span>
+            <span class="val" id="cAgeGender">--</span>
+          </div>
+          <div class="status-row">
+            <span style="color: var(--text-sub);">Service Required:</span>
+            <span class="val" id="cService" style="color: var(--accent-blue);">--</span>
+          </div>
+          <div class="status-row">
+            <span style="color: var(--text-sub);">Booked At:</span>
+            <span class="val" id="cTime">--</span>
+          </div>
+        </div>
+
+        <button class="btn-next" onclick="nextCustomer()">Call Next Customer (+1)</button>
+        
+        <div class="voice-toggle">
+          <input type="checkbox" id="voiceToggle" checked>
+          <label for="voiceToggle">Enable Voice Announcement 🔊</label>
+        </div>
+
+        <button class="btn-reset" onclick="resetQueue()">Reset Shift Counter</button>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    © DRCC Smart Queue Management System | Powered by ESP32-CAM & Firebase
+  </footer>
+
+  <!-- Firebase JS SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    const SERVICE_TIME_CONFIG = {
+      "loan_cert": { name: "Loan Certificate", time: 15 },
+      "doc_verify": { name: "Document Verification", time: 10 },
+      "general_inquiry": { name: "General Inquiry", time: 5 }
+    };
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyBhBqy0_rcQkbx9DdTkgKT24c2ys6IK_xQ",
+  authDomain: "queue-48943.firebaseapp.com",
+  databaseURL: "https://queue-48943-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "queue-48943",
+  storageBucket: "queue-48943.firebasestorage.app",
+  messagingSenderId: "121661188796",
+  appId: "1:121661188796:web:c071021faa676f6ec53eb9",
+  measurementId: "G-SFSHVWLN4K"
+};
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let myTokenNumber = null;
+    let isAdminAuthenticated = false;
+    const START_TOKEN_BASE = 100;
+
+    // Single Page Navigation Controller
+    function navigateTo(sectionId) {
+      if (sectionId === 'admin' && !isAdminAuthenticated) {
+        const pin = prompt("Enter Staff Admin PIN:");
+        if (pin === "1234" || pin === "admin123") {
+          isAdminAuthenticated = true;
+        } else {
+          if (pin !== null) alert("Incorrect Admin PIN!");
+          return;
+        }
+      }
+
+      // Hide all sections
+      document.querySelectorAll('.page-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.nav-links a').forEach(link => link.classList.remove('active'));
+
+      // Show selected section
+      document.getElementById('sec-' + sectionId).classList.add('active');
+      document.getElementById('link-' + sectionId).classList.add('active');
+
+      window.scrollTo(0, 0);
+    }
+
+    // Voice Synthesis Utility
+    function speakAnnouncement(text) {
+      if ('speechSynthesis' in window && document.getElementById('voiceToggle').checked) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    // Realtime Database Sync
+    db.ref('Queue').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const currentServing = data.current_serving;
+      const lastGenerated = data.last_generated;
+
+      // Update User Panel
+      document.getElementById('currentServing').innerText = '#' + currentServing;
+      if (myTokenNumber) {
+        calculateSumWaitingTime(currentServing, myTokenNumber);
+      }
+
+      // Update Admin Panel
+      document.getElementById('servingNum').innerText = '#' + currentServing;
+      
+      let attended = currentServing - START_TOKEN_BASE;
+      if (attended < 0) attended = 0;
+      document.getElementById('attendedNum').innerText = attended;
+
+      let waiting = lastGenerated - currentServing;
+      if (waiting < 0) waiting = 0;
+      document.getElementById('waitingNum').innerText = waiting;
+
+      fetchCurrentCustomerDetails(currentServing);
+    });
+
+    // Dynamic Wait Time Sum Function
+    async function calculateSumWaitingTime(currentServing, myToken) {
+      if (myToken <= currentServing) {
+        document.getElementById('peopleAhead').innerText = "0 person(s)";
+        document.getElementById('timeLeft').innerText = "0 mins (Your Turn!)";
+        document.getElementById('timeLeft').style.color = "var(--accent-green)";
+        document.getElementById('progressBar').style.width = "100%";
+        return;
+      }
+
+      let aheadCount = myToken - currentServing;
+      document.getElementById('peopleAhead').innerText = aheadCount + " person(s)";
+
+      let totalInitialDistance = myToken - START_TOKEN_BASE;
+      let completedDistance = currentServing - START_TOKEN_BASE;
+      let progressPercent = (completedDistance / totalInitialDistance) * 100;
+      document.getElementById('progressBar').style.width = Math.min(progressPercent, 95) + "%";
+
+      try {
+        const snapshot = await db.ref('tokens').once('value');
+        const tokens = snapshot.val() || {};
+
+        let totalWaitTime = 0;
+        for (let i = currentServing; i < myToken; i++) {
+          if (tokens[i] && tokens[i].allocated_time) {
+            totalWaitTime += parseInt(tokens[i].allocated_time);
+          } else {
+            totalWaitTime += 10;
+          }
+        }
+
+        document.getElementById('timeLeft').innerText = totalWaitTime + " mins";
+        document.getElementById('timeLeft').style.color = "var(--accent-blue)";
+      } catch (err) {
+        document.getElementById('timeLeft').innerText = (aheadCount * 10) + " mins";
+      }
+    }
+
+    // Generate Token Logic
+    function bookToken() {
+      const name = document.getElementById('userName').value.trim();
+      const age = document.getElementById('userAge').value.trim();
+      const gender = document.getElementById('userGender').value;
+      const serviceKey = document.getElementById('userService').value;
+
+      if (!name || !age || !gender || !serviceKey) {
+        alert("Please fill in all mandatory fields before generating a token!");
+        return;
+      }
+
+      const selectedService = SERVICE_TIME_CONFIG[serviceKey];
+
+      db.ref('Queue').transaction((queue) => {
+        if (queue) {
+          queue.last_generated++;
+        }
+        return queue;
+      }, (error, committed, snapshot) => {
+        if (committed) {
+          myTokenNumber = snapshot.val().last_generated;
+          document.getElementById('myToken').innerText = '#' + myTokenNumber;
+
+          const bookingTime = new Date().toLocaleTimeString();
+
+          db.ref('tokens/' + myTokenNumber).set({
+                name: name,
+                age: age,
+                gender: gender,
+                service_name: selectedService.name,
+                allocated_time: selectedService.time,
+                token_number: myTokenNumber,
+                booked_at: bookingTime
+            }).then(async () => {
+
+                const snap = await db.ref("Queue/current_serving").once("value");
+
+                calculateSumWaitingTime(snap.val(), myTokenNumber);
+
+                const currentServing = snap.val();
+                const queueLength = myTokenNumber - currentServing;
+
+                try {
+
+                    const response = await fetch("http://127.0.0.1:5000/predict", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            service: selectedService.name,
+                            queue_length: queueLength,
+                            day: new Date().toLocaleDateString("en-US", { weekday: "long" }),
+                            hour: new Date().getHours()
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    console.log("AI Prediction:", result);
+
+                    await db.ref("tokens/" + myTokenNumber).update({
+                        predicted_wait_time: result.predicted_wait_time
+                    });
+
+                    document.getElementById("timeLeft").innerText =
+                        result.predicted_wait_time + " mins (AI)";
+
+                } catch (err) {
+                    console.error("Prediction Error:", err);
+                }
+
+            });
+
+          document.getElementById('userName').disabled = true;
+          document.getElementById('userAge').disabled = true;
+          document.getElementById('userGender').disabled = true;
+          document.getElementById('userService').disabled = true;
+          
+          const btn = document.getElementById('bookBtn');
+          btn.innerText = "Token #" + myTokenNumber + " Generated";
+          btn.style.background = "var(--accent-green)";
+          btn.style.color = "#0b132b";
+          btn.disabled = true;
+
+          document.getElementById('vName').innerText = name;
+          document.getElementById('vAgeGender').innerText = age + " Yrs / " + gender;
+          document.getElementById('vService').innerText = selectedService.name + " (" + selectedService.time + " m)";
+          document.getElementById('vTime').innerText = bookingTime;
+
+          const textPayload = `DRCC TOKEN #${myTokenNumber}\nName: ${name}\nWork: ${selectedService.name}\nDuration: ${selectedService.time}m`;
+
+          document.getElementById('authCard').style.display = 'flex';
+          document.getElementById('qrcode').innerHTML = 
+            `<img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(textPayload)}" alt="Verification QR Code"/>`;
+        }
+      });
+    }
+
+    // Active Customer Info Sync
+    function fetchCurrentCustomerDetails(tokenNum) {
+      db.ref('tokens/' + tokenNum).once('value').then((snapshot) => {
+        const user = snapshot.val();
+        if (user) {
+          document.getElementById('cName').innerText = user.name;
+          document.getElementById('cAgeGender').innerText = user.age + " Yrs / " + user.gender;
+          document.getElementById('cService').innerText = user.service_name + " (" + (user.allocated_time || 5) + " Mins)";
+          document.getElementById('cTime').innerText = user.booked_at;
+        } else {
+          document.getElementById('cName').innerText = "No Active Customer";
+          document.getElementById('cAgeGender').innerText = "--";
+          document.getElementById('cService').innerText = "Waiting for next token...";
+          document.getElementById('cTime').innerText = "--";
+        }
+      });
+    }
+
+    // Staff Actions
+async function nextCustomer() {
+
+    const queueSnap = await db.ref("Queue").once("value");
+    const queue = queueSnap.val();
+
+    const currentServing = queue.current_serving;
+    const lastGenerated = queue.last_generated;
+
+    // Agar koi waiting customer hi nahi hai
+    if (currentServing >= lastGenerated) {
+        alert("No more customers are waiting.");
+        return;
+    }
+
+    const nextToken = currentServing + 1;
+
+    await db.ref("Queue").update({
+        current_serving: nextToken
+    });
+
+    speakAnnouncement(
+        "Token Number " + nextToken + ", please proceed to Counter 1"
+    );
+}
+
+// Reset Queue
+function resetQueue() {
+    if (confirm("Are you sure you want to reset the Queue counter to #100?")) {
+        db.ref("Queue").update({
+            current_serving: 100,
+            last_generated: 100
+        });
+    }
+}
+</script>
+
+</body>
+</html>

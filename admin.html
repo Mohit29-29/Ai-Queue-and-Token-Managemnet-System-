@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRCC Staff & Admin Dashboard</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #1e293b; color: #f8fafc; margin: 0; padding: 25px; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+    
+    /* Login Lock Screen Overlay */
+    #loginOverlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 999;
+    }
+    .login-box {
+      background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; text-align: center; width: 320px;
+    }
+    .login-box input {
+      width: 100%; padding: 10px; margin: 15px 0; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; text-align: center; font-size: 16px;
+    }
+    .login-box button {
+      width: 100%; padding: 10px; background: #38bdf8; border: none; color: #0f172a; font-weight: bold; border-radius: 6px; cursor: pointer;
+    }
+
+    /* Main Dashboard */
+    .dashboard { width: 100%; max-width: 650px; background: #0f172a; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155; display: none; }
+    
+    .header { text-align: center; border-bottom: 1px solid #334155; padding-bottom: 15px; margin-bottom: 20px; position: relative; }
+    .header h1 { margin: 0; font-size: 22px; color: #38bdf8; }
+    .header p { margin: 5px 0 0; font-size: 13px; color: #94a3b8; }
+    .btn-logout { position: absolute; right: 0; top: 0; background: #334155; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+    .stat-card { background: #1e293b; padding: 15px; border-radius: 10px; text-align: center; border: 1px solid #334155; }
+    .stat-card .title { font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 600; }
+    .stat-card .num { font-size: 24px; font-weight: bold; margin-top: 5px; }
+    .stat-card .num.gold { color: #f59e0b; }
+    .stat-card .num.green { color: #10b981; }
+    .stat-card .num.blue { color: #3b82f6; }
+
+    .customer-card { background: #1e293b; border-left: 5px solid #10b981; padding: 18px; border-radius: 10px; margin-bottom: 20px; text-align: left; }
+    .customer-card h3 { margin: 0 0 10px 0; font-size: 15px; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px; }
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+    .info-row .lbl { color: #94a3b8; }
+    .info-row .val { font-weight: bold; color: #f8fafc; }
+
+    .btn-next { background: #10b981; color: white; border: none; width: 100%; padding: 16px; font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .btn-next:hover { background: #059669; transform: translateY(-1px); }
+
+    .btn-reset { background: transparent; color: #ef4444; border: 1px solid #ef4444; width: 100%; padding: 10px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; margin-top: 15px; }
+    .btn-reset:hover { background: rgba(239, 68, 68, 0.1); }
+  </style>
+</head>
+<body>
+
+<!-- Lock Screen for Staff Security -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <h3 style="margin: 0; color: #38bdf8;">DRCC Staff Login</h3>
+    <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">Enter passcode to access dashboard</p>
+    <input type="password" id="passInput" placeholder="Enter PIN (e.g. 1234)">
+    <button onclick="authenticateStaff()">Access Dashboard</button>
+  </div>
+</div>
+
+<!-- Main Admin Panel Dashboard -->
+<div class="dashboard" id="mainDashboard">
+  <div class="header">
+    <button class="btn-logout" onclick="logoutStaff()">Logout / User Panel</button>
+    <h1>DRCC Counter Staff Dashboard</h1>
+    <p>Real-Time Queue Management & Verification Panel</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="title">Currently Serving</div>
+      <div class="num gold" id="servingNum">#--</div>
+    </div>
+    <div class="stat-card">
+      <div class="title">Total Attended</div>
+      <div class="num green" id="attendedNum">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="title">Waiting in Line</div>
+      <div class="num blue" id="waitingNum">0</div>
+    </div>
+  </div>
+
+  <div class="customer-card">
+    <h3>Currently Called Customer Info</h3>
+    <div class="info-row">
+      <span class="lbl">Full Name:</span>
+      <span class="val" id="cName">Fetching...</span>
+    </div>
+    <div class="info-row">
+      <span class="lbl">Age & Gender:</span>
+      <span class="val" id="cAgeGender">--</span>
+    </div>
+    <div class="info-row">
+      <span class="lbl">Service Required:</span>
+      <span class="val" id="cService" style="color: #38bdf8;">--</span>
+    </div>
+    <div class="info-row">
+      <span class="lbl">Booked At:</span>
+      <span class="val" id="cTime">--</span>
+    </div>
+  </div>
+
+  <button class="btn-next" onclick="nextCustomer()">Call Next Customer (+1)</button>
+  <button class="btn-reset" onclick="resetQueue()">Reset Shift / Queue Counter</button>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDAYpgeMKSQITo-76n-3GWCcVOksKQr1qw",
+    authDomain: "ai-smart-queue-management.firebaseapp.com",
+    databaseURL: "https://ai-smart-queue-management-default-rtdb.firebaseio.com",
+    projectId: "ai-smart-queue-management",
+    storageBucket: "ai-smart-queue-management.firebasestorage.app",
+    messagingSenderId: "1024892248550",
+    appId: "1:1024892248550:web:02634f444198c53a0b7627"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const START_TOKEN_BASE = 100; 
+
+  // Check login authentication
+  function authenticateStaff() {
+    const pin = document.getElementById('passInput').value;
+    if (pin === "1234" || pin === "admin123") {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('mainDashboard').style.display = 'block';
+    } else {
+      alert("Invalid Staff PIN!");
+    }
+  }
+
+  function logoutStaff() {
+    window.location.href = "index.html";
+  }
+
+  // Realtime Database Listener
+  db.ref('Queue').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const currentServing = data.current_serving;
+    const lastGenerated = data.last_generated;
+
+    document.getElementById('servingNum').innerText = '#' + currentServing;
+    
+    let attended = currentServing - START_TOKEN_BASE;
+    if (attended < 0) attended = 0;
+    document.getElementById('attendedNum').innerText = attended;
+
+    let waiting = lastGenerated - currentServing;
+    if (waiting < 0) waiting = 0;
+    document.getElementById('waitingNum').innerText = waiting;
+
+    fetchCurrentCustomerDetails(currentServing);
+  });
+
+  function fetchCurrentCustomerDetails(tokenNum) {
+    db.ref('tokens/' + tokenNum).once('value').then((snapshot) => {
+      const user = snapshot.val();
+      if (user) {
+        document.getElementById('cName').innerText = user.name;
+        document.getElementById('cAgeGender').innerText = user.age + " Yrs / " + user.gender;
+        document.getElementById('cService').innerText = user.service_name + " (" + (user.allocated_time || 5) + " Mins)";
+        document.getElementById('cTime').innerText = user.booked_at;
+      } else {
+        document.getElementById('cName').innerText = "No Active Customer";
+        document.getElementById('cAgeGender').innerText = "--";
+        document.getElementById('cService').innerText = "Waiting for next token...";
+        document.getElementById('cTime').innerText = "--";
+      }
+    });
+  }
+
+  function nextCustomer() {
+    db.ref('Queue/current_serving').transaction((val) => {
+      return (val || 100) + 1;
+    });
+  }
+
+  function resetQueue() {
+    if (confirm("Reset Queue to #100 for new shift?")) {
+      db.ref('Queue').update({
+        current_serving: 100,
+        last_generated: 100
+      });
+    }
+  }
+</script>
+
+</body>
+</html>
